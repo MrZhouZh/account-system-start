@@ -1,7 +1,9 @@
-import { prisma } from "@/utils.server";
+import { NextResponse } from "next/server";
 import * as Boom from "@hapi/boom";
 import bcrypt from 'bcrypt'
-import { NextResponse } from "next/server";
+import jwt from 'jsonwebtoken'
+import cookie from 'cookie'
+import { prisma } from "@/utils.server";
 
 async function validate(username: string, password: string) {
   const user= await prisma.user.findUnique({
@@ -19,11 +21,27 @@ async function validate(username: string, password: string) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request, res: NextResponse) {
   const body: AccountInfo = await req.json()
   try {
     const user = await validate(body.username, body.password)
-    return NextResponse.json({ message: 'success', code: 200, data: user })
+    // jwt
+    const token = jwt.sign(
+      { username: user.username, },
+      // @ts-expect-error
+      process.env.JWT_SECRET,
+      { expiresIn: '3 days' }
+    )
+    // set cookie named token
+    res.headers.set('Set-Cookie', cookie.serialize('token', token, {
+      httpOnly: true,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 3
+    }))
+    // return NextResponse.json({ message: 'success', code: 200, data: user })
+    // const result = await res.json()
+    // console.log({ result });
+    return res.body
   } catch (err: any) {
     // throw new Error(err.output.payload.message)
     return NextResponse.json({ message: err.output.payload.message, code: 500, data: null })
