@@ -20,12 +20,12 @@ async function validate(username: string, password: string) {
 }
 
 export async function POST(req: Request) {
-  console.log('api post...')
   const body: AccountInfo = await req.json()
   try {
     const user = await validate(body.username, body.password)
     return NextResponse.json({ message: 'success', code: 200, data: user })
   } catch (err: any) {
+    // throw new Error(err.output.payload.message)
     return NextResponse.json({ message: err.output.payload.message, code: 500, data: null })
   }
 }
